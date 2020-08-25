@@ -626,4 +626,11 @@ class Layout implements LayoutInterface, JsonSerializable, ArrayAccess, Arrayabl
         return $this->attributesToArray();
     }
 
+    /**
+     * @return int
+     */
+    public function getKey() {
+        $model = $this->model ?? Flexible::getOriginModel();
+        return $model->getKey();
+    }
 }
