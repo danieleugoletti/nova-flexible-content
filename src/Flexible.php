@@ -630,4 +630,19 @@ class Flexible extends Field
     {
         return static::$model;
     }
+
+    /**
+     * @param string $key
+     * @return array
+     */
+    public function fieldsInLayoutByKey($key) {
+        $group = $this->findGroup($key);
+        return $group ? $group->fields() : [];
+    }
+    /**
+     * @return array
+     */
+    public function layouts() {
+        return $this->layouts;
+    }
 }
