@@ -19,6 +19,10 @@ export default class Group {
 
         for (var i = 0; i < this.fields.length; i++) {
             this.fields[i].fill(formData);
+
+            if (this.fields[i].component == 'file-field' && !formData.get(this.fields[i].attribute) && this.fields[i].value) {
+                formData.append(this.fields[i].attribute, this.fields[i].value)
+            }
         }
 
         return formData;
