@@ -8,6 +8,8 @@ use Whitecube\NovaFlexibleContent\Http\FlexibleAttribute;
 
 class Image extends NovaImage
 {
+    public $component = 'nova-flexible-file-field';
+
     /**
      * Create a new field.
      *
@@ -25,10 +27,6 @@ class Image extends NovaImage
             return $value ? Storage::disk($this->getStorageDisk())->url($value) : null;
         })->preview(function ($value) {
             return $value ? Storage::disk($this->getStorageDisk())->url($value) : null;
-        })
-        ->download(function ($request, $model) {
-            $fileName = request()->input(FlexibleAttribute::REGISTER.'-download');
-            return Storage::disk($this->getStorageDisk())->download($fileName);
         });
     }
 }

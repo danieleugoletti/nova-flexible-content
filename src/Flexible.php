@@ -5,12 +5,14 @@ namespace Whitecube\NovaFlexibleContent;
 use Illuminate\Support\Str;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Http\Requests\NovaRequest;
-use Whitecube\NovaFlexibleContent\Http\ScopedRequest;
-use Whitecube\NovaFlexibleContent\Value\Resolver;
-use Whitecube\NovaFlexibleContent\Value\ResolverInterface;
-use Whitecube\NovaFlexibleContent\Layouts\Preset;
 use Whitecube\NovaFlexibleContent\Layouts\Layout;
+use Whitecube\NovaFlexibleContent\Layouts\Preset;
+use Whitecube\NovaFlexibleContent\Value\Resolver;
+use Whitecube\NovaFlexibleContent\Http\ScopedRequest;
+use Whitecube\NovaFlexibleContent\Http\FlexibleAttribute;
 use Whitecube\NovaFlexibleContent\Layouts\LayoutInterface;
+use Whitecube\NovaFlexibleContent\Value\ResolverInterface;
+use Whitecube\NovaFlexibleContent\Http\FlexibleDeleteNotUsedFiles;
 use Whitecube\NovaFlexibleContent\Layouts\Collection as LayoutsCollection;
 
 class Flexible extends Field
@@ -282,6 +284,32 @@ class Flexible extends Field
         });
 
         return parent::isShownOnDetail($request, $resource);
+    }
+
+    /**
+     * Hydrate the given attribute on the model based on the incoming request.
+     *
+     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
+     * @param  object  $model
+     * @return mixed
+     */
+    public function fill(NovaRequest $request, $model)
+    {
+        $r = $this->fillInto($request, $model, $this->attribute);
+
+        $filesDiskMap = $this->groups->reduce(function($carry, $group) {
+            collect($group->fields())->map(function($field) use (&$carry, $group) {
+                if (!in_array($field->component, ['nova-flexible-file-field'])) {
+                    return $carry;
+                }
+                $carry[$group->name().'.'.$field->attribute] = $field->getStorageDisk();
+            });
+
+            return $carry;
+        }, []);
+
+        FlexibleDeleteNotUsedFiles::setFilesDiskMap($filesDiskMap);
+        return $r;
     }
 
     /**
