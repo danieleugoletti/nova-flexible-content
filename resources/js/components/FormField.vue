@@ -72,6 +72,7 @@ export default {
             order: [],
             groups: {},
             files: {},
+            originalFilesValues: {},
             limitCounter: this.field.limit
         };
     },
@@ -85,6 +86,7 @@ export default {
             this.files = {};
 
             this.populateGroups();
+            this.initOriginalFilesValues();
         },
 
         /**
@@ -96,9 +98,12 @@ export default {
             this.value = [];
             this.files = {};
 
+            let currentFilesValues = {};
+
             for (var i = 0; i < this.order.length; i++) {
                 key = this.order[i];
                 group = this.groups[key].serialize();
+
 
                 // Only serialize the group's non-file attributes
                 this.value.push({
@@ -109,6 +114,8 @@ export default {
 
                 // Attach the files for formData appending
                 this.files = {...this.files, ...group.files};
+
+               currentFilesValues = {...currentFilesValues, ...this.filesValues(this.groups[key].layout, this.groups[key].fields, key)};
             }
 
             this.appendFieldAttribute(formData, this.field.attribute);
@@ -117,6 +124,20 @@ export default {
             // Append file uploads
             for(let file in this.files) {
                 formData.append(file, this.files[file]);
+            }
+
+            // Append the files to delete
+            let filesToDelete = [];
+            for (let fileKey in this.originalFilesValues) {
+                if (!currentFilesValues[fileKey] ||
+                    (currentFilesValues[fileKey] && currentFilesValues[fileKey].value != this.originalFilesValues[fileKey].value) ||
+                    (formData.get('___upload-'+currentFilesValues[fileKey].attribute))
+                ) {
+                    filesToDelete.push(this.originalFilesValues[fileKey]);
+                }
+            }
+            if (filesToDelete.length) {
+                formData.set('___nova_flexible_content_files_to_delete', JSON.stringify(filesToDelete));
             }
         },
 
@@ -181,6 +202,7 @@ export default {
             let fields = attributes || JSON.parse(JSON.stringify(layout.fields)),
                 group = new Group(layout.name, layout.title, fields, this.field, key, collapsed);
 
+
             this.groups[group.key] = group;
             this.order.push(group.key);
 
@@ -225,7 +247,36 @@ export default {
             if (this.limitCounter >= 0) {
                 this.limitCounter++;
             }
-        }
+        },
+
+        /**
+         * Save the initial file/image values
+         * these values will be used to compute the files to delete
+         */
+        initOriginalFilesValues(fields) {
+            this.originalFilesValues = {}
+            this.value.forEach((value) => {
+                let layout = this.getLayout(value.layout)
+                let fields = value.attributes || JSON.parse(JSON.stringify(layout.fields))
+                this.originalFilesValues = {...this.originalFilesValues, ...this.filesValues(value.layout, fields, value.key)}
+            })
+        },
+
+        /**
+         * Extract the file/image values from fields
+         */
+        filesValues(layout, fields, key) {
+            let values = {}
+            fields.forEach((field) => {
+                 if (['nova-flexible-file-field'].indexOf(field.component)===-1) {
+                    return
+                }
+                values[field.attribute] = {'attribute': field.attribute, 'value': field.value, 'key': key, 'layout': layout}
+            })
+
+            return values
+        },
+
     }
 }
 </script>

@@ -2,11 +2,10 @@
 
 namespace Whitecube\NovaFlexibleContent\Fields;
 
-use Laravel\Nova\Fields\File as NovaFIle;
+use Laravel\Nova\Fields\File as NovaFile;
 
 
-class File extends NovaFIle
+class File extends NovaFile
 {
     public $component = 'nova-flexible-file-field';
-
 }

@@ -13,4 +13,5 @@ Nova.booting((Vue, router, store) => {
     Vue.component('icon-minus-square', require('./components/icons/MinusSquare'))
 
     Vue.component('detail-nova-flexible-file-field', require('./components/DetailFileField.vue'))
+    Vue.component('form-nova-flexible-file-field', require('./components/FormFileField.vue'))
 })
