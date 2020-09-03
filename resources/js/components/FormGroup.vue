@@ -67,7 +67,7 @@
                     </p>
                 </div>
             </div>
-            <div :class="containerStyle">
+            <div :class="containerStyle" dusk="nova-flexible-group-fields">
                 <component
                     v-for="(item, index) in group.fields"
                     :key="index"
