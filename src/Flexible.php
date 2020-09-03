@@ -5,13 +5,18 @@ namespace Whitecube\NovaFlexibleContent;
 use Illuminate\Support\Str;
 use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\ValidationRuleParser;
+use Illuminate\Contracts\Translation\Translator;
 use Whitecube\NovaFlexibleContent\Layouts\Layout;
 use Whitecube\NovaFlexibleContent\Layouts\Preset;
 use Whitecube\NovaFlexibleContent\Value\Resolver;
 use Whitecube\NovaFlexibleContent\Http\ScopedRequest;
+use Whitecube\NovaFlexibleContent\Validation\Validator;
 use Whitecube\NovaFlexibleContent\Http\FlexibleAttribute;
 use Whitecube\NovaFlexibleContent\Layouts\LayoutInterface;
 use Whitecube\NovaFlexibleContent\Value\ResolverInterface;
+use Whitecube\NovaFlexibleContent\Validation\ValidatesAttributes;
 use Whitecube\NovaFlexibleContent\Http\FlexibleDeleteNotUsedFiles;
 use Whitecube\NovaFlexibleContent\Layouts\Collection as LayoutsCollection;
 
@@ -556,12 +561,46 @@ class Flexible extends Field
             // reference (see Http\TransformsFlexibleErrors).
             static::registerValidationKeys($rules);
 
+            // Wrap the file rules to perform the validation
+            $rules = collect($rules)->mapWithKeys(function($value, $key) use ($request) {
+                return [
+                    $key => [
+                        'attribute' => $value['attribute'],
+                        'rules' => collect($value['rules'])->map(function($rule) use ($request, $key) {
+                            $parsedRule = ValidationRuleParser::parse($rule);
+                            if (!in_array($parsedRule[0], Validator::$fileRulesToWrap)) {
+                                return $rule;
+                            }
+
+                            return $this->wrapFileRule([$key => $rule], $request);
+                        })->all()
+                    ]
+                ];
+            })->all();
+
             // Then, transform the rules into an array that's actually
             // usable by Laravel's Validator.
             $rules = $this->getCleanedRules($rules);
         }
 
         return $rules;
+    }
+
+    /**
+     * Wrap the File Rules to custom Validator.
+     *
+     * @param array $rule
+     * @param NovaRequest $request
+     * @return callable
+     */
+    protected function wrapFileRule($rule, NovaRequest $request)
+    {
+        $translator = resolve(Translator::class);
+        $validator = new Validator($translator, $request->all(), $rule);
+
+        return function ($attribute, $value, $fail) use ($validator) {
+            $validator->validate();
+        };
     }
 
     /**
